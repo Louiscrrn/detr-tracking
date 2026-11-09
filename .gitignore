@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.env
+.pytest_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# Données, poids et artefacts (jamais dans git)
+data/
+weights/
+*.pt
+*.pth
+*.onnx
+*.safetensors
+mlruns/
+mlartifacts/
+outputs/
+
+# macOS
+.DS_Store
+
+# Brief de travail (local uniquement)
+PROJECT.md
