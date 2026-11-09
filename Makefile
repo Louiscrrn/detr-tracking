@@ -1,4 +1,4 @@
-.PHONY: install lint format test test-all smoke data eval
+.PHONY: install lint format test test-all smoke data eval viz mlflow
 
 install:
 	uv sync
@@ -25,3 +25,9 @@ data:
 
 eval:
 	uv run python scripts/eval_detector.py
+
+viz:
+	uv run python scripts/visualize_detections.py
+
+mlflow:
+	uv run mlflow ui --backend-store-uri sqlite:///mlflow.db --port 5000

@@ -93,7 +93,7 @@ def to_coco(seq_dirs: list[Path], split: Split, image_root: Path) -> dict:
     for video_id, seq_dir in enumerate(sorted(seq_dirs), start=1):
         info = read_seqinfo(seq_dir)
         frames = split_frames(info.length, split)
-        videos.append({"id": video_id, "name": info.name})
+        videos.append({"id": video_id, "name": info.name, "frame_rate": info.frame_rate})
         image_ids = {}
         for frame in frames:
             image_id = video_id * 100_000 + frame

@@ -21,7 +21,9 @@ make test      # fast tests (no weights needed)
 make test-all  # also runs tests that download the model weights
 make smoke     # run RF-DETR Small on a sample image -> outputs/smoke_detect.jpg
 make data      # MOT17 train GT -> COCO json (train_half / val_half / full)
-make eval      # evaluate the detector on val_half, logged to MLflow (mlflow ui)
+make eval      # evaluate the detector on val_half, logged to MLflow
+make viz       # per-sequence error analysis + annotated videos -> outputs/qualitative/
+make mlflow    # MLflow UI on http://127.0.0.1:5000
 ```
 
 ## Data
