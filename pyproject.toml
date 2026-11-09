@@ -5,7 +5,7 @@ description = "Real-time multi-object tracking with RF-DETR and ByteTrack, serve
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [
-    "rfdetr>=1.12,<2",
+    "rfdetr[train]>=1.12,<2",
     "supervision>=0.31,<0.32",
     "torch>=2.8",
     "torchvision>=0.23",
