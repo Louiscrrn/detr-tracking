@@ -1,4 +1,4 @@
-.PHONY: install lint format test test-all smoke
+.PHONY: install lint format test test-all smoke data eval
 
 install:
 	uv sync
@@ -19,3 +19,9 @@ test-all:
 
 smoke:
 	uv run python scripts/smoke_detect.py
+
+data:
+	uv run python scripts/prepare_mot17.py
+
+eval:
+	uv run python scripts/eval_detector.py

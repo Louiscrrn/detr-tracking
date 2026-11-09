@@ -12,6 +12,8 @@ dependencies = [
     "numpy>=2",
     "pillow>=11",
     "opencv-python-headless>=4.10",
+    "pycocotools>=2.0.8",
+    "mlflow>=3.5",
 ]
 
 [dependency-groups]

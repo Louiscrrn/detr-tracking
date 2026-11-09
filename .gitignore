@@ -8,7 +8,7 @@ __pycache__/
 .ipynb_checkpoints/
 
 # Données, poids et artefacts (jamais dans git)
-data/
+/data/
 weights/
 *.pt
 *.pth
@@ -23,3 +23,4 @@ outputs/
 
 # Brief de travail (local uniquement)
 PROJECT.md
+mlflow.db

@@ -14,11 +14,11 @@ if TYPE_CHECKING:
 PERSON_CLASS_ID = 1  # COCO category id used by RF-DETR pretrained weights
 
 
-def load_detector() -> RFDETRSmall:
-    """Load RF-DETR Small with COCO-pretrained weights (downloaded on first call)."""
+def load_detector(weights: str | None = None) -> RFDETRSmall:
+    """Load RF-DETR Small. Without `weights`, use COCO-pretrained weights (downloaded once)."""
     from rfdetr import RFDETRSmall
 
-    return RFDETRSmall()
+    return RFDETRSmall(pretrain_weights=weights) if weights else RFDETRSmall()
 
 
 def keep_class(detections: sv.Detections, class_id: int = PERSON_CLASS_ID) -> sv.Detections:
