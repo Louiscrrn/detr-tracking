@@ -115,3 +115,21 @@ whose crop clamps boxes).
 
 Parameters fixed in advance, not tuned per detector. Ablation: track and match thresholds,
 second association pass on/off.
+
+## D8. Train / validation split: MOT17 "half" split (default, known limit)
+
+Only MOT17's 7 train sequences have public GT (test GT is hidden, scored on the MOTChallenge
+server). Each train sequence is cut at frame N // 2: first half `train_half` (2,657 frames),
+second half `val_half` (2,659 frames). `val_half` is the test set: no checkpoint or tracker
+parameter is selected on it. This is the usual protocol for MOT17 ablations (introduced by
+CenterTrack and reused by ByteTrack, among others), so numbers are comparable with them.
+
+Known limit, measured: the scenes overlap. Both halves come from the same 7 cameras, the two
+frames at the cut are 1/30 s apart, and 45 % of `val_half` identities already appear in
+`train_half` (70 % in MOT17-04, 8 % in MOT17-05). `val_half` therefore measures performance
+on known scenes and overestimates generalisation to new ones; it is fine for comparing
+variants of the pipeline.
+
+Some choices were informed by `val_half` (10 epochs from the 20-epoch curve, the border
+analysis), a mild leak to keep in mind. Ablation / final check: leave-one-sequence-out
+evaluation, or one submission of the final tracker to the MOTChallenge test server.
