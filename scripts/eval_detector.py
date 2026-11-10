@@ -18,7 +18,7 @@ import numpy as np
 from PIL import Image
 from tqdm import tqdm
 
-from detr_tracking.detection.detector import keep_class, load_detector
+from detr_tracking.detection.detector import keep_class, load_detector, person_class_id
 from detr_tracking.detection.evaluate import detections_to_coco, evaluate, load_gt
 
 
@@ -41,6 +41,7 @@ def main() -> None:
 
     model = load_detector(args.weights)
     config = model.model_config
+    class_id = person_class_id(args.weights is not None, model.class_names)
 
     results: list[dict] = []
     batch_times: list[float] = []
@@ -52,7 +53,7 @@ def main() -> None:
         batch_times.append((time.perf_counter() - t0) / len(batch))
         preds = preds if isinstance(preds, list) else [preds]
         for im, det in zip(batch, preds, strict=True):
-            results.extend(detections_to_coco(im["id"], keep_class(det)))
+            results.extend(detections_to_coco(im["id"], keep_class(det, class_id)))
 
     metrics = evaluate(gt, results, image_ids=[im["id"] for im in images])
     # first batch includes warm-up; report the median per-image time of the rest

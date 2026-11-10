@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 import supervision as sv
 
-from detr_tracking.detection.detector import PERSON_CLASS_ID, keep_class
+from detr_tracking.detection.detector import PERSON_CLASS_ID, keep_class, person_class_id
 
 
 def _detections(class_ids: list[int]) -> sv.Detections:
@@ -22,6 +22,13 @@ def test_keep_class_filters_other_classes():
 
 def test_keep_class_handles_empty():
     assert len(keep_class(sv.Detections.empty())) == 0
+
+
+def test_person_class_id():
+    assert person_class_id(False, ["person", "bicycle"]) == PERSON_CLASS_ID
+    assert person_class_id(True, ["person"]) == 0
+    with pytest.raises(ValueError):
+        person_class_id(True, ["car"])
 
 
 @pytest.mark.slow
