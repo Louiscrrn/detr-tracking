@@ -78,6 +78,20 @@ HOTA(A) clearly exceeds |HOTA(C) - HOTA(A)| and inner boxes do not degrade.
 
 Limits: `val_half` shares scenes with `train_half`; one seed per condition.
 
+**Boxes whose centre is outside the image (4.3 %, assumed acceptable).** They are clamped to
+the visible part, never dropped. Options for later, cheapest first:
+
+1. Keep as is: mostly people less than half visible (e.g. only feet at the top of MOT17-04).
+2. Tracker-side completion, no retraining: when a detection touches the border, restore the
+   size its track had while fully visible, anchored on the visible side. Also covers boxes
+   larger than the image; does not help people entering the frame.
+3. Pad the image (train and inference) so out-of-image centres fall inside the canvas; costs
+   input resolution at a fixed 512 px, hurting small pedestrians.
+4. Widen the box parameterisation (e.g. centre in [-0.5, 1.5] instead of a sigmoid's [0, 1]);
+   intrusive in RF-DETR (head, target normalisation, post-processing, ONNX export).
+
+Next to try if border errors weigh on HOTA: option 2.
+
 ## D4. Ignore regions as `iscrowd` during training (default, side effect noted)
 
 Distractor classes become `iscrowd=1`. RF-DETR drops them from the targets, so a DETR learns
