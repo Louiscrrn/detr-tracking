@@ -82,3 +82,32 @@ def enable_amodal_boxes() -> None:
     coco.ConvertCoco.__call__ = convert_call
     tv.crop = crop
     _PATCHED = True
+
+
+_PREDICTIONS_PATCHED = False
+
+
+def enable_unclamped_predictions() -> None:
+    """Stop RF-DETR from clamping predicted boxes to the image (idempotent).
+
+    RF-DETR's `PostProcess` clamps every predicted box to the image. MOT17 evaluation (TrackEval)
+    compares boxes as they are, so we return the model's boxes unclamped, for every model we
+    evaluate. A model trained on clamped boxes still predicts inside the image.
+    """
+    global _PREDICTIONS_PATCHED
+    if _PREDICTIONS_PATCHED:
+        return
+    from rfdetr.models import postprocess
+    from rfdetr.utilities import box_ops
+
+    def gather_and_scale_boxes(
+        out_bbox: torch.Tensor, topk_boxes: torch.Tensor, target_sizes: torch.Tensor
+    ) -> torch.Tensor:
+        boxes = box_ops.box_cxcywh_to_xyxy(out_bbox)
+        boxes = torch.gather(boxes, 1, topk_boxes.unsqueeze(-1).expand(-1, -1, 4))
+        img_h, img_w = target_sizes.unbind(1)
+        scale_fct = torch.stack([img_w, img_h, img_w, img_h], dim=1).to(boxes.dtype)
+        return boxes * scale_fct[:, None, :]
+
+    postprocess.PostProcess._gather_and_scale_boxes = staticmethod(gather_and_scale_boxes)
+    _PREDICTIONS_PATCHED = True

@@ -18,6 +18,7 @@ import numpy as np
 from PIL import Image
 from tqdm import tqdm
 
+from detr_tracking.data.amodal import enable_unclamped_predictions
 from detr_tracking.detection.detector import keep_class, load_detector, person_class_id
 from detr_tracking.detection.evaluate import detections_to_coco, evaluate, load_gt
 
@@ -39,6 +40,8 @@ def main() -> None:
     gt = load_gt(str(gt_path))
     images = gt.loadImgs(sorted(gt.getImgIds()))[: args.limit]
 
+    # MOT17 protocol (TrackEval): boxes are compared as they are, nothing is clamped to the image
+    enable_unclamped_predictions()
     model = load_detector(args.weights)
     config = model.model_config
     class_id = person_class_id(args.weights is not None, model.class_names)

@@ -57,6 +57,14 @@ def test_to_coco_train_half(seq_dir: Path):
     assert anns[0]["area"] == 800.0
 
 
+def test_to_coco_keeps_boxes_past_the_border(seq_dir: Path):
+    # MOT17 / TrackEval protocol: GT boxes are never clamped to the image
+    gt = seq_dir / "gt" / "gt.txt"
+    gt.write_text(gt.read_text() + "2,4,600,400,80,150,1,1,0.6\n")  # x2=680 > 640, y2=550 > 480
+    coco = to_coco([seq_dir], "train_half", image_root=seq_dir.parent)
+    assert [600.0, 400.0, 80.0, 150.0] in [a["bbox"] for a in coco["annotations"]]
+
+
 def test_to_coco_val_half(seq_dir: Path):
     coco = to_coco([seq_dir], "val_half", image_root=seq_dir.parent)
     assert [im["frame_id"] for im in coco["images"]] == [3, 4]

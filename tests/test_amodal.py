@@ -3,6 +3,7 @@ from PIL import Image
 
 from detr_tracking.data.amodal import (
     enable_amodal_boxes,
+    enable_unclamped_predictions,
     representable_or_clamped,
     visible_mask,
 )
@@ -63,3 +64,13 @@ def test_patched_crop_shifts_without_clamping():
     _, out = tv.crop(Image.new("RGB", (W, H)), target, top=0, left=100, height=H, width=100)
     assert out["boxes"].tolist() == [[50.0, 20.0, 130.0, 110.0]]
     assert out["labels"].tolist() == [0]
+
+
+def test_unclamped_predictions_keep_boxes_past_the_border():
+    enable_unclamped_predictions()
+    from rfdetr.models.postprocess import PostProcess
+
+    out_bbox = torch.tensor([[[0.95, 0.5, 0.3, 0.4]]])  # normalised cxcywh, x2 = 1.10 > 1
+    sizes = torch.tensor([[H, W]])
+    boxes = PostProcess._gather_and_scale_boxes(out_bbox, torch.tensor([[0]]), sizes)
+    assert torch.allclose(boxes[0, 0], torch.tensor([160.0, 30.0, 220.0, 70.0]))

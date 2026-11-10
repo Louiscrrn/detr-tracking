@@ -29,10 +29,15 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "src"))
 
-from detr_tracking.data.amodal import enable_amodal_boxes  # noqa: E402
+from detr_tracking.data.amodal import (  # noqa: E402
+    enable_amodal_boxes,
+    enable_unclamped_predictions,
+)
 from detr_tracking.data.rfdetr_dataset import build_dataset  # noqa: E402
 
 # Module level on purpose: DDP processes and spawned dataloader workers re-import this file.
+# Both runs: RF-DETR's internal validation sees unclamped predictions, as our evaluation does.
+enable_unclamped_predictions()
 if "--clamp-boxes" not in sys.argv:
     enable_amodal_boxes()
 
