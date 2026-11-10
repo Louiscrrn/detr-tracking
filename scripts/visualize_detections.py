@@ -6,7 +6,7 @@ recall on small boxes). A mosaic of one frame per sequence is saved and, with --
 logged to that MLflow run.
 
 Usage:
-  uv run python scripts/visualize_detections.py --dets outputs/dets_pretrained_val_half.json
+  uv run python scripts/visualize_detections.py --dets outputs/dets_pretrained_val.json
 """
 
 from __future__ import annotations
@@ -55,8 +55,8 @@ def legend(img: np.ndarray, title: str, counts: dict[str, int]) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dets", type=Path, default=Path("outputs/dets_pretrained_val_half.json"))
-    parser.add_argument("--split", default="val_half")
+    parser.add_argument("--dets", type=Path, default=Path("outputs/dets_pretrained_val.json"))
+    parser.add_argument("--split", default="val")
     parser.add_argument("--ann-dir", type=Path, default=Path("data/mot17/annotations"))
     parser.add_argument("--image-root", type=Path, default=Path("data/raw/MOT17/train"))
     parser.add_argument("--threshold", type=float, default=0.5, help="display score threshold")

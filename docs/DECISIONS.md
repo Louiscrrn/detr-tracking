@@ -24,8 +24,7 @@ neither in the GT nor in the predictions.
   (`enable_unclamped_predictions`). Checked: no change for a model trained on clamped boxes
   (AP 0.399 both ways on 300 val frames).
 
-Tracking: HOTA (primary), MOTA, IDF1 with TrackEval on `val_half` (second half of each MOT17
-train sequence). Detection: COCO AP on the original GT, distractor classes as ignore regions.
+Tracking: HOTA (primary), MOTA, IDF1 with TrackEval on the validation sequences (D8). Detection: COCO AP on the original GT, distractor classes as ignore regions.
 
 ## D1. Detector: RF-DETR Small, 512 px (default)
 
@@ -35,9 +34,9 @@ trading latency.
 
 ## D2. Fine-tuning: 10 epochs, last EMA checkpoint (assumed)
 
-A 20-epoch run peaked at epoch 7 (RF-DETR's val mAP 0.543) and slowly declined to 0.535: 10
-epochs is enough. The last checkpoint is kept, never the best one on `val_half`, since
-`val_half` is also the test set. Ablation: 5 / 10 / 20 epochs.
+On the earlier half split (D8), a 20-epoch run peaked at epoch 7 (RF-DETR's val mAP 0.543) and slowly declined to 0.535: 10
+epochs is enough. The last checkpoint is kept, never the best one on the validation
+sequences, so validation numbers are not inflated by model selection. Ablation: 5 / 10 / 20 epochs.
 
 ## D3. Amodal boxes at the image border (assumed)
 
@@ -46,10 +45,11 @@ predict them, instead of RF-DETR's default clamping, improves agreement with the
 near the border, hence detection and tracking under the MOT17 protocol, without hurting boxes
 inside the image. H0: no difference beyond run-to-run noise.
 
-**Why it matters.** 14.6 % of MOT17 pedestrian boxes extend past the image (26 % in MOT17-04,
+**Why it matters.** 14.6 % of MOT17 pedestrian boxes (all 7 train sequences) extend past the image (26 % in MOT17-04,
 22 % in MOT17-05). RF-DETR clamps them in three places: annotation loading (`ConvertCoco`),
 random crop (torchvision), and prediction post-processing. A model trained on clamped boxes
-scored AP 0.398 on the original GT and 0.531 on a clamped GT: the gap is the convention.
+scored AP 0.398 on the original GT and 0.531 on a clamped GT (half split, D8): the gap is
+the convention.
 
 **What we do** (`detr_tracking.data.amodal`): keep a box whole if its centre lies in the image
 and its size does not exceed the image (a sigmoid-parameterised DETR can predict it), clamp it
@@ -67,16 +67,16 @@ default, 8.9 % with the patch (`scripts/check_amodal_pipeline.py`,
 | B (adopted) | amodal | 42 |
 | C (noise) | clamped | 43 |
 
-Everything else identical: train_half, RF-DETR Small from COCO, 512 px, torchvision
+Everything else identical: train sequences (D8), RF-DETR Small from COCO, 512 px, torchvision
 augmentation, 10 epochs, effective batch 16, lr 1e-4, last EMA checkpoint, same inference
 threshold, no clamping of predictions, same ByteTrack parameters fixed in advance.
 
 Predictions to check: B predicts boxes past the border for truncated people (A does not);
 higher AP / AP75 on border GT, equal on inner GT; higher HOTA (LocA, DetA) and MOTA, IDF1 not
-lower, mostly on MOT17-04 and -05. Primary metric: HOTA on `val_half`. Keep B if HOTA(B) -
+lower, mostly on MOT17-04 and -05. Primary metric: HOTA on the validation sequences. Keep B if HOTA(B) -
 HOTA(A) clearly exceeds |HOTA(C) - HOTA(A)| and inner boxes do not degrade.
 
-Limits: `val_half` shares scenes with `train_half`; one seed per condition.
+Limits: one seed per condition.
 
 **Boxes whose centre is outside the image (4.3 %, assumed acceptable).** They are clamped to
 the visible part, never dropped. Options for later, cheapest first:
@@ -101,7 +101,7 @@ the loss instead (needs a loss mask), or keep as is.
 
 ## D5. No visibility filter on training boxes (assumed)
 
-Boxes with low visibility (13 % below 0.1 in train_half) are kept: removing them would teach
+Boxes with low visibility (8 % below 0.1 in the train sequences, 36 % in validation) are kept: removing them would teach
 the DETR not to detect heavily occluded people, while TrackEval counts them. Ablation:
 visibility threshold 0 / 0.1 / 0.25.
 
@@ -116,20 +116,33 @@ whose crop clamps boxes).
 Parameters fixed in advance, not tuned per detector. Ablation: track and match thresholds,
 second association pass on/off.
 
-## D8. Train / validation split: MOT17 "half" split (default, known limit)
+## D8. Train / validation split by sequence (decided)
 
-Only MOT17's 7 train sequences have public GT (test GT is hidden, scored on the MOTChallenge
-server). Each train sequence is cut at frame N // 2: first half `train_half` (2,657 frames),
-second half `val_half` (2,659 frames). `val_half` is the test set: no checkpoint or tracker
-parameter is selected on it. This is the usual protocol for MOT17 ablations (introduced by
-CenterTrack and reused by ByteTrack, among others), so numbers are comparable with them.
+Only MOT17's 7 train sequences have public GT; the official test set (7 other sequences, hidden
+GT) is kept for one submission to the MOTChallenge server at the end of the project.
 
-Known limit, measured: the scenes overlap. Both halves come from the same 7 cameras, the two
-frames at the cut are 1/30 s apart, and 45 % of `val_half` identities already appear in
-`train_half` (70 % in MOT17-04, 8 % in MOT17-05). `val_half` therefore measures performance
-on known scenes and overestimates generalisation to new ones; it is fine for comparing
-variants of the pipeline.
+The train sequences are split **by sequence**, so the two splits share no scene, camera or
+person (`VAL_SEQUENCES` in `detr_tracking.data.mot17`):
 
-Some choices were informed by `val_half` (10 epochs from the 20-epoch curve, the border
-analysis), a mild leak to keep in mind. Ablation / final check: leave-one-sequence-out
-evaluation, or one submission of the final tracker to the MOTChallenge test server.
+| Split | Sequences | Frames | Boxes | Pedestrians / frame |
+|---|---|---|---|---|
+| train | MOT17-04, -09, -10, -11, -13 | 3,879 | 86,799 | 45, 10, 20, 10, 16 |
+| val | MOT17-02, -05 | 1,437 | 25,498 (22.7 %) | 31, 8 |
+
+Why these two: a crowded static scene (MOT17-02) and a sparse moving-camera one (MOT17-05,
+640x480), while training keeps the full density range, including the most crowded scene
+(MOT17-04). A three-density validation (crowded, medium, sparse) is not possible near 80/20:
+the smallest such set (MOT17-02, -13, -09) already holds 32 % of the boxes. MOT17-09 and -10
+look like the same shopping street (Australian shop signs in both), so they stay on the same
+side.
+
+Known gaps: validation is more occluded than training (mean visibility 0.44 vs 0.64; 36 % of
+val boxes are less than 10 % visible, mostly MOT17-02) and has fewer boxes past the image
+border (7.3 % vs 16.7 %). Validation numbers are therefore harder than training-scene numbers,
+and weigh occlusion more than the border.
+
+History: the first experiments used the "half" split (first half of each sequence for
+training, second half for validation, as in CenterTrack and ByteTrack). It was dropped
+because the halves share scenes and 45 % of identities. Numbers quoted in D2 and D3 come from
+that split; the first fine-tuned model was trained on the first half of MOT17-02 and -05 and
+is not evaluated on the new validation.

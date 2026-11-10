@@ -14,7 +14,7 @@ import json
 import shutil
 from pathlib import Path
 
-RFDETR_SPLITS = {"train": "train_half", "valid": "val_half"}
+RFDETR_SPLITS = {"train": "train", "valid": "val"}
 
 
 def flat_name(file_name: str) -> str:
@@ -26,8 +26,10 @@ def flat_name(file_name: str) -> str:
 def build_split(
     coco: dict, image_root: Path, split_dir: Path, *, copy: bool = False, limit: int | None = None
 ) -> dict:
-    """Write one split folder and return the COCO dict saved in it."""
-    split_dir.mkdir(parents=True, exist_ok=True)
+    """Write one split folder (rebuilt from scratch) and return the COCO dict saved in it."""
+    if split_dir.exists():
+        shutil.rmtree(split_dir)  # drop links left by a previous split
+    split_dir.mkdir(parents=True)
     images = coco["images"][:limit] if limit else coco["images"]
     keep = {im["id"] for im in images}
 
@@ -55,7 +57,7 @@ def build_split(
 def build_dataset(
     ann_dir: Path, image_root: Path, out_dir: Path, *, copy: bool = False, limit: int | None = None
 ) -> dict[str, dict]:
-    """Build `train/` and `valid/` from `<ann_dir>/{train_half,val_half}.json`."""
+    """Build `train/` and `valid/` from `<ann_dir>/{train,val}.json`."""
     built = {}
     for folder, split in RFDETR_SPLITS.items():
         coco = json.loads((ann_dir / f"{split}.json").read_text())

@@ -1,4 +1,4 @@
-"""Fine-tune RF-DETR Small on MOT17 pedestrians (train_half), validating on val_half.
+"""Fine-tune RF-DETR Small on MOT17 pedestrians (train sequences), validating on val sequences.
 
 One entry point for local and Kaggle runs. With `--download`, MOT17 is fetched and converted
 first. With `--devices 2`, training runs with DDP on two GPUs (Lightning relaunches this script
@@ -9,7 +9,7 @@ through RF-DETR's data pipeline, see `detr_tracking.data.amodal`. `--clamp-boxes
 RF-DETR's default clamping.
 
 The model kept for evaluation is the last EMA checkpoint (`last_ema.pth`, fixed number of
-epochs): val_half is also our test set, so picking the "best" epoch on it would inflate the mAP.
+epochs): picking the "best" epoch on the validation sequences would inflate their mAP.
 
 Usage:
   python scripts/train_detector.py --download --data-root /tmp/data --devices 2 --grad-accum 1
@@ -73,18 +73,10 @@ def download_mot17(data_root: Path, detector: str = "FRCNN") -> Path:
 def prepare(args: argparse.Namespace) -> None:
     if args.download:
         download_mot17(args.data_root)
-    if not (args.ann_dir / "train_half.json").exists():
-        import json
+    if not (args.ann_dir / "train.json").exists():
+        from detr_tracking.data.mot17 import write_splits
 
-        from detr_tracking.data.mot17 import to_coco
-
-        seq_dirs = sorted(args.image_root.glob("MOT17-*-FRCNN"))
-        if not seq_dirs:
-            raise SystemExit(f"no MOT17 sequences in {args.image_root} (use --download?)")
-        args.ann_dir.mkdir(parents=True, exist_ok=True)
-        for split in ("train_half", "val_half"):
-            coco = to_coco(seq_dirs, split, image_root=args.image_root)
-            (args.ann_dir / f"{split}.json").write_text(json.dumps(coco))
+        write_splits(args.image_root, args.ann_dir)
     built = build_dataset(
         args.ann_dir, args.image_root, args.dataset_dir, copy=args.copy, limit=args.limit
     )

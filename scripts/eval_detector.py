@@ -25,7 +25,7 @@ from detr_tracking.detection.evaluate import detections_to_coco, evaluate, load_
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--split", default="val_half")
+    parser.add_argument("--split", default="val")
     parser.add_argument("--ann-dir", type=Path, default=Path("data/mot17/annotations"))
     parser.add_argument("--image-root", type=Path, default=Path("data/raw/MOT17/train"))
     parser.add_argument("--weights", default=None, help="checkpoint; default = COCO pretrained")

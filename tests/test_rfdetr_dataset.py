@@ -29,8 +29,8 @@ def dirs(tmp_path: Path) -> tuple[Path, Path, Path]:
     (image_root / "SEQ" / "img1").mkdir(parents=True)
     for f in range(1, 5):
         (image_root / "SEQ" / "img1" / f"{f:06d}.jpg").write_bytes(b"jpg")
-    _write_split(ann_dir, "train_half", [1, 2])
-    _write_split(ann_dir, "val_half", [3, 4])
+    _write_split(ann_dir, "train", [1, 2])
+    _write_split(ann_dir, "val", [3, 4])
     return ann_dir, image_root, out
 
 

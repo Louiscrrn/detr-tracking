@@ -1,6 +1,6 @@
 """Qualitative views of the data: a dataset grid and augmented training samples.
 
-- outputs/checks/dataset_grid.png: 4 frames per MOT17 sequence (2 train_half, 2 val_half)
+- outputs/checks/dataset_grid.png: 4 frames per MOT17 sequence, labelled with its split
   with pedestrians (green) and ignore regions (grey).
 - outputs/checks/augmentations.png: per row, one source frame with its GT, then several
   samples from RF-DETR's real training pipeline (resize, random crop, flip) with the amodal
@@ -61,14 +61,14 @@ def gt_frame(im: dict, anns: list[dict], image_root: Path, pad_frac: float = 0.0
 
 def dataset_grid(ann_dir: Path, image_root: Path, out: Path, tile_h: int = 300) -> None:
     rows: dict[str, list[np.ndarray]] = {}
-    for split in ("train_half", "val_half"):
+    for split in ("train", "val"):
         coco = json.loads((ann_dir / f"{split}.json").read_text())
         by_img: dict[int, list[dict]] = {}
         for a in coco["annotations"]:
             by_img.setdefault(a["image_id"], []).append(a)
         for v in coco["videos"]:
             frames = [im for im in coco["images"] if im["video_id"] == v["id"]]
-            for im in (frames[len(frames) // 4], frames[3 * len(frames) // 4]):
+            for im in (frames[(2 * k + 1) * len(frames) // 8] for k in range(4)):
                 tile = fit(gt_frame(im, by_img.get(im["id"], []), image_root), tile_h)
                 n = sum(1 for a in by_img.get(im["id"], []) if not a["iscrowd"])
                 put_label(tile, f"{v['name'][:8]} {split} f{im['frame_id']} ({n} ped.)", 0.55)
@@ -115,7 +115,7 @@ def augmentation_examples(data_root: Path, out: Path, per_row: int = 4, tile_h: 
     dataset = rf_build_dataset("train", ns, model.model_config.resolution)
 
     coco = json.loads((dataset_dir / "train" / "_annotations.coco.json").read_text())
-    raw = json.loads((ann_dir / "train_half.json").read_text())
+    raw = json.loads((ann_dir / "train.json").read_text())
     raw_images = {im["id"]: im for im in raw["images"]}
     by_img: dict[int, list[dict]] = {}
     for a in raw["annotations"]:

@@ -3,7 +3,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from detr_tracking.data.mot17 import classify_rows, split_frames, to_coco
+from detr_tracking.data.mot17 import classify_rows, split_by_sequence, split_frames, to_coco
 
 SEQINFO = """[Sequence]
 name=MOT17-99-FRCNN
@@ -71,3 +71,23 @@ def test_to_coco_val_half(seq_dir: Path):
     assert [a["iscrowd"] for a in coco["annotations"]] == [0, 1]
     image_ids = {im["id"] for im in coco["images"]}
     assert all(a["image_id"] in image_ids for a in coco["annotations"])
+
+
+def test_split_by_sequence_keeps_whole_sequences_apart(tmp_path: Path):
+    names = [f"MOT17-{n:02d}-FRCNN" for n in (2, 4, 5, 9, 10, 11, 13)]
+    dirs = [tmp_path / n for n in names]
+    split = split_by_sequence(dirs, val_sequences=("MOT17-02", "MOT17-05"))
+    assert [d.name for d in split["val"]] == ["MOT17-02-FRCNN", "MOT17-05-FRCNN"]
+    assert len(split["train"]) == 5
+    assert not set(split["train"]) & set(split["val"])
+
+
+def test_split_by_sequence_rejects_unknown_sequence(tmp_path: Path):
+    with pytest.raises(ValueError):
+        split_by_sequence([tmp_path / "MOT17-04-FRCNN"], val_sequences=("MOT17-02",))
+
+
+def test_image_ids_follow_sequence_number(seq_dir: Path):
+    coco = to_coco([seq_dir], "full", image_root=seq_dir.parent)
+    assert coco["videos"][0]["id"] == 99
+    assert coco["images"][0]["id"] == 99 * 100_000 + 1
