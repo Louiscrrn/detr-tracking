@@ -103,6 +103,7 @@ def main() -> None:
     parser.add_argument("--lr", type=float, default=1e-4)
     parser.add_argument("--resolution", type=int, default=512)
     parser.add_argument("--devices", type=int, default=1, help="number of GPUs (DDP if > 1)")
+    parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--num-workers", type=int, default=2)
     parser.add_argument("--eval-interval", type=int, default=2, help="validate every N epochs")
     parser.add_argument("--limit", type=int, default=None, help="use the first N images per split")
@@ -138,6 +139,7 @@ def main() -> None:
         "num_workers": args.num_workers,
         "eval_interval": args.eval_interval,
         "class_names": ["person"],
+        "seed": args.seed,
         "early_stopping": False,
         # pinned so Kaggle (Albumentations installed) and local runs share the pipeline
         # that check_amodal_pipeline.py verifies

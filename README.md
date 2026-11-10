@@ -34,6 +34,9 @@ first half for training, second half for validation (ByteTrack convention).
 Pedestrians (class 1) are positives; person-like classes (static person, person on vehicle,
 distractor, reflection) are ignore regions; vehicles and occluders are dropped.
 
+Design choices, what is verified and what is assumed (with the ablations planned to check
+them): [docs/DECISIONS.md](docs/DECISIONS.md).
+
 ## Results
 
 ### Detection, MOT17 val_half (2,659 frames, 54,042 boxes)
