@@ -22,6 +22,7 @@ make test-all  # also runs tests that download the model weights
 make smoke     # run RF-DETR Small on a sample image -> outputs/smoke_detect.jpg
 make data      # MOT17 train GT -> COCO json (train_half / val_half / full)
 make eval      # evaluate the detector on val_half, logged to MLflow
+make stats     # data statistics (border, visibility, box size) -> docs/DATA_STATS.md
 make viz       # per-sequence error analysis + annotated videos -> outputs/qualitative/
 make mlflow    # MLflow UI on http://127.0.0.1:5000
 ```
@@ -31,6 +32,7 @@ make mlflow    # MLflow UI on http://127.0.0.1:5000
 Download [MOT17](https://motchallenge.net/data/MOT17/) and unzip `MOT17/train/*-FRCNN` into `data/raw/`.
 Only the train split has public ground truth, so each train sequence is split by frame index:
 first half for training, second half for validation (ByteTrack convention).
+Statistics: [docs/DATA_STATS.md](docs/DATA_STATS.md).
 Pedestrians (class 1) are positives; person-like classes (static person, person on vehicle,
 distractor, reflection) are ignore regions; vehicles and occluders are dropped.
 
