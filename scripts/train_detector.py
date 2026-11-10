@@ -4,12 +4,16 @@ One entry point for local and Kaggle runs. With `--download`, MOT17 is fetched a
 first. With `--devices 2`, training runs with DDP on two GPUs (Lightning relaunches this script
 once per GPU; data preparation only runs in the main process).
 
+By default, boxes that extend past the image (MOT17 annotates the full person) are kept whole
+through RF-DETR's data pipeline, see `detr_tracking.data.amodal`. `--clamp-boxes` restores
+RF-DETR's default clamping.
+
 The model kept for evaluation is the last EMA checkpoint (`last_ema.pth`, fixed number of
 epochs): val_half is also our test set, so picking the "best" epoch on it would inflate the mAP.
 
 Usage:
   python scripts/train_detector.py --download --data-root /tmp/data --devices 2 --grad-accum 1
-  python scripts/train_detector.py --epochs 20            # local, data already in data/
+  python scripts/train_detector.py                        # local, data already in data/
 """
 
 from __future__ import annotations
@@ -25,7 +29,12 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "src"))
 
+from detr_tracking.data.amodal import enable_amodal_boxes  # noqa: E402
 from detr_tracking.data.rfdetr_dataset import build_dataset  # noqa: E402
+
+# Module level on purpose: DDP processes and spawned dataloader workers re-import this file.
+if "--clamp-boxes" not in sys.argv:
+    enable_amodal_boxes()
 
 MOT17_URL = "https://motchallenge.net/data/MOT17.zip"
 
@@ -83,7 +92,7 @@ def main() -> None:
     parser.add_argument("--data-root", type=Path, default=Path("data"))
     parser.add_argument("--download", action="store_true", help="fetch MOT17 into --data-root")
     parser.add_argument("--output-dir", type=Path, default=Path("weights/rfdetr-small-mot17"))
-    parser.add_argument("--epochs", type=int, default=20)
+    parser.add_argument("--epochs", type=int, default=10)
     parser.add_argument("--batch-size", type=int, default=8, help="per GPU")
     parser.add_argument("--grad-accum", type=int, default=2)
     parser.add_argument("--lr", type=float, default=1e-4)
@@ -93,6 +102,9 @@ def main() -> None:
     parser.add_argument("--eval-interval", type=int, default=2, help="validate every N epochs")
     parser.add_argument("--limit", type=int, default=None, help="use the first N images per split")
     parser.add_argument("--copy", action="store_true", help="copy images instead of symlinking")
+    parser.add_argument(
+        "--clamp-boxes", action="store_true", help="RF-DETR default: clamp boxes to the image"
+    )
     args = parser.parse_args()
 
     args.image_root = args.data_root / "raw" / "MOT17" / "train"
@@ -103,6 +115,7 @@ def main() -> None:
 
     if is_main_process():
         prepare(args)
+        print(f"amodal boxes: {not args.clamp_boxes}", flush=True)
         effective = args.batch_size * args.devices * args.grad_accum
         print(f"effective batch size: {effective} ({args.devices} GPU(s))", flush=True)
 
@@ -121,6 +134,9 @@ def main() -> None:
         "eval_interval": args.eval_interval,
         "class_names": ["person"],
         "early_stopping": False,
+        # pinned so Kaggle (Albumentations installed) and local runs share the pipeline
+        # that check_amodal_pipeline.py verifies
+        "augmentation_backend": "torchvision",
     }
     if args.devices > 1:
         train_kwargs.update(device="cuda", devices=args.devices, strategy="ddp")
